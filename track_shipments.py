@@ -294,11 +294,10 @@ def fetch_msk_status(page, tracking_number: str) -> dict | None:
     return result
 
 
-def send_email(subject: str, report_lines: list[tuple[str, bool]]):
+def send_email(subject: str, report_lines: list[tuple[str, bool]], recipient: str):
     """report_lines is a list of (text, changed) — changed=True gets bolded."""
     sender = os.environ["EMAIL_SENDER"]
     password = os.environ["EMAIL_APP_PASSWORD"]
-    recipient = os.environ["EMAIL_RECIPIENT"]
 
     def esc(s: str) -> str:
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -309,15 +308,10 @@ def send_email(subject: str, report_lines: list[tuple[str, bool]]):
         html_lines.append(f"<b>{safe}</b>" if changed else safe)
     html_body = "<br>".join(html_lines)
 
-    plain_body = "\n".join(text for text, _ in report_lines)
-
     msg = MIMEText(html_body, "html")
     msg["Subject"] = subject
     msg["From"] = sender
     msg["To"] = recipient
-    # Fallback plain text alternative isn't set up here since MIMEText only
-    # holds one body — HTML renders fine as plain fallback text in most
-    # clients too, so this keeps things simple.
 
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(sender, password)
@@ -351,7 +345,8 @@ def process_msk(previous_state: dict, current_latest: dict | None):
 def main():
     shipments = load_shipments()
     state = load_state()
-    report_lines = []  # list of (text, changed_bool), in shipments.json order
+    # Grouped by recipient tag (e.g. "mma" / "ba") so each gets their own email.
+    report_by_group: dict[str, list[tuple[str, bool]]] = {}
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -361,7 +356,15 @@ def main():
             carrier = shipment["carrier"].upper()
             key = f"{carrier}:{shipment['tracking_number']}"
             label = shipment.get("label") or shipment["tracking_number"]
+            group = (shipment.get("recipient") or "").strip().lower()
             previous_state = state.get(key, {})
+
+            if not group:
+                # No recipient tag — report it, but under its own group so it's
+                # obviously not silently dropped rather than guessing where it goes.
+                group = "unassigned"
+
+            report_lines = report_by_group.setdefault(group, [])
 
             if previous_state.get("retired"):
                 continue  # on rail now — skip entirely, per your request
@@ -394,8 +397,12 @@ def main():
 
         browser.close()
 
-    if report_lines:
-        send_email("Shipment status check", report_lines)
+    for group, lines in report_by_group.items():
+        if not lines:
+            continue
+        recipient = os.environ["EMAIL_RECIPIENT"]
+        subject = f"Shipment status check — {group.upper()}"
+        send_email(subject, lines, recipient)
 
     save_state(state)
 
