@@ -46,7 +46,7 @@ from playwright.sync_api import sync_playwright
 SHIPMENTS_FILE = Path("shipments.json")
 STATE_FILE = Path("state.json")
 
-HPL_URL = "https://www.hapag-lloyd.com/en/online-business/track/track-by-booking-solution.html"
+HPL_URL = "https://www.hapag-lloyd.com/en/online-business/track/track-by-container-solution.html"
 MSK_URL = "https://www.maersk.com/tracking/"
 
 SEARCH_INPUT_CANDIDATES = [
