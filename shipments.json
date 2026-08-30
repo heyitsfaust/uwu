@@ -2,14 +2,14 @@
   "_instructions": "One entry per shipment. carrier is 'HPL' or 'MSK'. label is whatever you'll recognize (PO number, customer name, etc). Delete this _instructions key or leave it — the script ignores it.",
   "shipments": [
     {
-      "tracking_number": "REPLACE_ME",
-      "carrier": "HPL",
-      "label": "example label"
+      "tracking_number": "MSK 274689901",
+      "carrier": "MSK",
+      "label": "MSK 274689901"
     },
     {
-      "tracking_number": "REPLACE_ME",
-      "carrier": "MSK",
-      "label": "example label"
+      "tracking_number": "HPL 94847299",
+      "carrier": "HPL",
+      "label": "HPL 94847299"
     }
   ]
 }
