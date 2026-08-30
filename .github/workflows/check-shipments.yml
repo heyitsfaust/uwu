@@ -1,1 +1,48 @@
+name: Check shipment status
+
+on:
+  schedule:
+    # Runs at 07:00 and 19:00 UTC daily — adjust to your timezone/needs.
+    # Cron time is always UTC regardless of where you are.
+    - cron: "0 7 * * *"
+    - cron: "0 19 * * *"
+  workflow_dispatch: {}  # lets you trigger it manually from the GitHub Actions tab
+
+permissions:
+  contents: write  # needed so the workflow can commit the updated state.json back
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+      - run: playwright install --with-deps chromium
+
+      - run: python track_shipments.py
+        env:
+          EMAIL_SENDER: ${{ secrets.EMAIL_SENDER }}
+          EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+          EMAIL_RECIPIENT: ${{ secrets.EMAIL_RECIPIENT }}
+
+      - name: Upload debug screenshots (only if something failed to read)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: debug_*.png
+          if-no-files-found: ignore
+
+      - name: Save updated state
+        run: |
+          git config user.name "shipment-tracker-bot"
+          git config user.email "actions@github.com"
+          git add state.json
+          git diff --cached --quiet || git commit -m "Update shipment state"
+          git push
 
