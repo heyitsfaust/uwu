@@ -46,7 +46,7 @@ from playwright.sync_api import sync_playwright
 SHIPMENTS_FILE = Path("shipments.json")
 STATE_FILE = Path("state.json")
 
-HPL_URL = "https://www.hapag-lloyd.com/en/online-business/track/track-by-container-solution.html"
+HPL_URL = "https://www.hapag-lloyd.com/en/online-business/track/track-by-booking-solution.html"
 MSK_URL = "https://www.maersk.com/tracking/"
 
 SEARCH_INPUT_CANDIDATES = [
@@ -200,7 +200,7 @@ def diff_events(previous: list[dict], current: list[dict]):
 
 
 def fetch_via_browser(page, url: str, tracking_number: str, carrier: str) -> list[dict]:
-    page.goto(url, wait_until="networkidle", timeout=30000)
+    page.goto(url, wait_until="domcontentloaded", timeout=45000)
     dismiss_cookie_banner(page)
 
     found = fill_and_search(page, tracking_number)
@@ -268,7 +268,7 @@ def extract_msk_latest_event(page) -> dict | None:
 
 
 def fetch_msk_status(page, tracking_number: str) -> dict | None:
-    page.goto(MSK_URL, wait_until="networkidle", timeout=30000)
+    page.goto(MSK_URL, wait_until="domcontentloaded", timeout=45000)
     dismiss_cookie_banner(page)
 
     found = fill_and_search(page, tracking_number)
@@ -409,4 +409,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
